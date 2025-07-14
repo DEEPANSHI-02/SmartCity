@@ -17,8 +17,8 @@
 
   body {
     line-height: 1.5;
-    color: theme('colors.white');
-    background-color: theme('colors.gray.900');
+    color: white;
+    background-color: #111827;
   }
 
   /* Custom scrollbar */
@@ -27,21 +27,20 @@
   }
   
   ::-webkit-scrollbar-track {
-    background: theme('colors.gray.800');
+    background: #1f2937;
   }
   
   ::-webkit-scrollbar-thumb {
-    background: theme('colors.gray.600');
+    background: #4b5563;
     border-radius: 3px;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.gray.500');
+    background: #6b7280;
   }
 }
 
 @layer components {
-  /* Glassmorphism utilities */
   .glass {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -56,7 +55,6 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* Custom button styles */
   .btn-primary {
     @apply bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:from-blue-600 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50;
   }
@@ -67,7 +65,6 @@
 }
 
 @layer utilities {
-  /* Animation utilities */
   .animate-pulse-slow {
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
@@ -76,19 +73,13 @@
     animation: fadeIn 0.5s ease-in-out forwards;
   }
 
-  .animate-slide-up {
-    animation: slideUp 0.3s ease-out forwards;
-  }
-
-  /* Gradient text */
   .text-gradient {
-    background: linear-gradient(to right, theme('colors.blue.400'), theme('colors.cyan.400'));
+    background: linear-gradient(to right, #60a5fa, #22d3ee);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Custom shadows */
   .shadow-glow {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   }
@@ -114,17 +105,6 @@
   }
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -134,10 +114,14 @@
   }
 }
 
-/* Dark mode utilities */
-@media (prefers-color-scheme: dark) {
-  .auto-dark {
-    color-scheme: dark;
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -155,16 +139,5 @@
   .glass-dark {
     background: rgba(0, 0, 0, 0.8);
     border: 2px solid rgba(255, 255, 255, 0.8);
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
 }
