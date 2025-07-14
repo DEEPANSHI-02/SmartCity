@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Activity, Cloud, Wifi, Battery, Bell } from 'lucide-react';
 import { LocationStatus } from '../map/LocationStatus';
+import { NetworkStatus } from '../common/NetworkStatus';
+import { useNetworkInfo } from '../../hooks/useNetworkInfo';
 
 export const Header = ({ cityData, onMenuToggle, isMobileMenuOpen, location, locationError, locationLoading, refreshLocation }) => {
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+  const { networkInfo, adaptiveSettings, connectionQuality } = useNetworkInfo();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -41,13 +44,14 @@ export const Header = ({ cityData, onMenuToggle, isMobileMenuOpen, location, loc
               loading={locationLoading} 
               refreshLocation={refreshLocation}
             />
+            <NetworkStatus 
+              networkInfo={networkInfo}
+              adaptiveSettings={adaptiveSettings}
+              connectionQuality={connectionQuality}
+            />
             <div className="flex items-center space-x-2 text-gray-300">
               <Cloud size={16} />
               <span className="text-sm">{cityData.temperature}</span>
-            </div>
-            <div className="flex items-center space-x-2 text-gray-300">
-              <Wifi size={16} />
-              <span className="text-sm">{cityData.networkStatus}</span>
             </div>
             <div className="flex items-center space-x-2 text-gray-300">
               <Battery size={16} />
