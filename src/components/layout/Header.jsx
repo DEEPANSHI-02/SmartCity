@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Activity, Cloud, Wifi, Battery, Bell } from 'lucide-react';
+import { LocationStatus } from '../map/LocationStatus';
 
-export const Header = ({ cityData, onMenuToggle, isMobileMenuOpen }) => {
+export const Header = ({ cityData, onMenuToggle, isMobileMenuOpen, location, locationError, locationLoading, refreshLocation }) => {
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -34,6 +35,12 @@ export const Header = ({ cityData, onMenuToggle, isMobileMenuOpen }) => {
           </div>
 
           <div className="hidden md:flex items-center space-x-6">
+            <LocationStatus 
+              location={location} 
+              error={locationError} 
+              loading={locationLoading} 
+              refreshLocation={refreshLocation}
+            />
             <div className="flex items-center space-x-2 text-gray-300">
               <Cloud size={16} />
               <span className="text-sm">{cityData.temperature}</span>
