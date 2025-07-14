@@ -1,9 +1,26 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { MapPin } from 'lucide-react';
+import { useNetworkInfo } from '../../hooks/useNetworkInfo';
 
 export const InteractiveMap = ({ location }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const { adaptiveSettings, networkInfo } = useNetworkInfo();
+  const [mapSettings, setMapSettings] = useState({
+    showDetails: true,
+    renderQuality: 'high'
+  });
+
+  // Adjust map settings based on network
+  useEffect(() => {
+    const quality = adaptiveSettings.dataMode === 'minimal' ? 'low' : 
+                   adaptiveSettings.dataMode === 'reduced' ? 'medium' : 'high';
+    
+    setMapSettings({
+      showDetails: adaptiveSettings.dataMode !== 'minimal',
+      renderQuality: quality
+    });
+  }, [adaptiveSettings]);
 
   const drawMap = useCallback(() => {
     const canvas = canvasRef.current;
@@ -19,30 +36,34 @@ export const InteractiveMap = ({ location }) => {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw base map
+    // Draw base map with adaptive quality
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
     gradient.addColorStop(0, '#1f2937');
     gradient.addColorStop(1, '#374151');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid
+    // Draw grid with quality adjustment
+    const gridSize = mapSettings.renderQuality === 'low' ? 100 : 
+                    mapSettings.renderQuality === 'medium' ? 75 : 50;
+    
     ctx.strokeStyle = '#4b5563';
     ctx.lineWidth = 0.5;
-    const gridSize = 50;
     
-    for (let i = 0; i < canvas.width; i += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, canvas.height);
-      ctx.stroke();
-    }
-    
-    for (let i = 0; i < canvas.height; i += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(canvas.width, i);
-      ctx.stroke();
+    if (mapSettings.showDetails) {
+      for (let i = 0; i < canvas.width; i += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+      }
+      
+      for (let i = 0; i < canvas.height; i += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+      }
     }
 
     // Draw user location
@@ -50,9 +71,11 @@ export const InteractiveMap = ({ location }) => {
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
       
-      // Pulse animation
-      const pulseRadius = 15 + Math.sin(Date.now() / 300) * 5;
+      // Animate pulse only if animations are enabled
+      const pulseRadius = adaptiveSettings.animationsEnabled ? 
+        15 + Math.sin(Date.now() / 300) * 5 : 15;
       
+      // Pulse effect
       ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
       ctx.beginPath();
       ctx.arc(centerX, centerY, pulseRadius, 0, 2 * Math.PI);
@@ -68,54 +91,62 @@ export const InteractiveMap = ({ location }) => {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Coordinates
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '12px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`, 
-                   centerX, centerY + 35);
+      // Show coordinates only in detailed mode
+      if (mapSettings.showDetails) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`, 
+                     centerX, centerY + 35);
+      }
     }
 
-    // Compass
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '14px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('N', canvas.width - 30, 30);
-    
-    // Scale
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(20, canvas.height - 40);
-    ctx.lineTo(70, canvas.height - 40);
-    ctx.stroke();
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '10px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('1km', 20, canvas.height - 25);
+    // Network quality indicator
+    if (mapSettings.showDetails) {
+      ctx.fillStyle = networkInfo.isOnline ? '#22c55e' : '#ef4444';
+      ctx.font = '14px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Network: ${networkInfo.isOnline ? 'Online' : 'Offline'}`, 20, 30);
+      
+      if (networkInfo.isOnline) {
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.fillText(`Quality: ${mapSettings.renderQuality}`, 20, 45);
+      }
+    }
 
-  }, [location]);
+  }, [location, mapSettings, adaptiveSettings, networkInfo]);
 
   useEffect(() => {
     drawMap();
-    const interval = setInterval(drawMap, 100);
+    
+    // Adaptive refresh rate based on network
+    const refreshRate = adaptiveSettings.animationsEnabled ? 100 : 1000;
+    const interval = setInterval(drawMap, refreshRate);
+    
     return () => clearInterval(interval);
-  }, [drawMap]);
+  }, [drawMap, adaptiveSettings.animationsEnabled]);
 
   return (
     <div className="bg-gray-800/40 backdrop-blur-lg rounded-2xl border border-gray-700/50 overflow-hidden">
       <div className="p-4 border-b border-gray-700/50">
-        <div className="flex items-center space-x-3">
-          <MapPin className="text-blue-400" size={24} />
-          <div>
-            <h3 className="text-xl font-bold text-white">Live City Map</h3>
-            <p className="text-gray-400 text-sm">
-              {location ? 
-                `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : 
-                'Waiting for location...'
-              }
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <MapPin className="text-blue-400" size={24} />
+            <div>
+              <h3 className="text-xl font-bold text-white">Adaptive City Map</h3>
+              <p className="text-gray-400 text-sm">
+                {location ? 
+                  `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : 
+                  'Waiting for location...'
+                }
+              </p>
+            </div>
+          </div>
+          
+          {/* Quality indicator */}
+          <div className="text-xs bg-gray-700/50 px-2 py-1 rounded text-gray-300">
+            {mapSettings.renderQuality} quality
           </div>
         </div>
       </div>
@@ -145,7 +176,7 @@ export const InteractiveMap = ({ location }) => {
           </div>
           
           <div className="text-sm text-gray-400">
-            Real-time tracking active
+            Refresh: {adaptiveSettings.refreshInterval}ms
           </div>
         </div>
       </div>
