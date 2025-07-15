@@ -3,6 +3,7 @@ import { Widget } from '../widgets/Widget';
 import { LiveWidget } from '../widgets/LiveWidget';
 import { LazyWrapper } from '../common/LazyWrapper';
 import { mockWidgets } from '../../services/mockData';
+import { getCityData } from '../../services/cityService';
 import { Car, Cloud, Activity, Bus } from 'lucide-react';
 
 const liveWidgets = [
@@ -40,14 +41,46 @@ const liveWidgets = [
   }
 ];
 
-export const DashboardSection = () => {
+export const DashboardSection = ({ selectedCity }) => {
+  // Get city-specific data if a city is selected
+  const citySpecificData = selectedCity ? getCityData(selectedCity) : null;
+
   return (
     <div className="space-y-8">
+      {/* City Info Banner - Show if city is selected */}
+      {selectedCity && citySpecificData && (
+        <LazyWrapper>
+          <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl p-6 border border-blue-500/30">
+            <h3 className="text-2xl font-bold text-white mb-4">
+              {selectedCity.name}, {selectedCity.country}
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-white">{citySpecificData.temperature}</p>
+                <p className="text-gray-300">{citySpecificData.condition}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-white">{citySpecificData.humidity}</p>
+                <p className="text-gray-300">Humidity</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-white">{citySpecificData.windSpeed}</p>
+                <p className="text-gray-300">Wind Speed</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-white">{citySpecificData.trafficLevel}</p>
+                <p className="text-gray-300">Traffic</p>
+              </div>
+            </div>
+          </div>
+        </LazyWrapper>
+      )}
+
       {/* Live Data Section */}
       <LazyWrapper>
         <h3 className="text-xl font-bold mb-4 flex items-center">
           <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-          Live Data
+          Live Data {selectedCity && `- ${selectedCity.name}`}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {liveWidgets.map((widget, index) => (

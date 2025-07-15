@@ -1,19 +1,15 @@
-import React, { useState } from 'react';
-import { Activity, MapPin, Car, Cloud, Bus, Bell } from 'lucide-react';
+import React from 'react';
+import { Activity, MapPin } from 'lucide-react';
 
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Activity },
-  { id: 'map', label: 'City Map', icon: MapPin },
-  { id: 'traffic', label: 'Traffic', icon: Car },
-  { id: 'weather', label: 'Weather', icon: Cloud },
-  { id: 'transport', label: 'Transport', icon: Bus },
-  { id: 'alerts', label: 'Alerts', icon: Bell }
+  { id: 'map', label: 'City Map', icon: MapPin }
 ];
 
 export const Sidebar = ({ isOpen, onClose, activeSection, onSectionChange }) => {
   const handleSectionClick = (sectionId) => {
     onSectionChange(sectionId);
-    if (window.innerWidth < 1024) { // Close mobile menu on selection
+    if (window.innerWidth < 1024) {
       onClose();
     }
   };
@@ -60,24 +56,24 @@ export const Sidebar = ({ isOpen, onClose, activeSection, onSectionChange }) => 
 
         <div className="absolute bottom-6 left-6 right-6">
           <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
-            <h3 className="text-gray-300 text-sm font-medium mb-3">City Overview</h3>
+            <h3 className="text-gray-300 text-sm font-medium mb-3">Live Status</h3>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Population</span>
-                <span className="text-white">Local Area</span>
+                <span className="text-gray-400">Location</span>
+                <span className="text-green-400">Active</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Air Quality</span>
-                <span className="text-green-400">Good</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Traffic</span>
-                <span className="text-yellow-400">Moderate</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </>
-  );
+               <span className="text-gray-400">Air Quality</span>
+               <span className="text-green-400">Good</span>
+             </div>
+             <div className="flex justify-between text-sm">
+               <span className="text-gray-400">Traffic</span>
+               <span className="text-yellow-400">Moderate</span>
+             </div>
+           </div>
+         </div>
+       </div>
+     </aside>
+   </>
+ );
 };
