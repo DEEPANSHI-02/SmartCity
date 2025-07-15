@@ -11,15 +11,24 @@ export const InteractiveMap = ({ location }) => {
     renderQuality: 'high'
   });
 
+  // Handle both user location and selected city coordinates
+  const mapLocation = location ? {
+    latitude: location.latitude || location.lat || 0,
+    longitude: location.longitude || location.lng || 0,
+    accuracy: location.accuracy || 100
+  } : null;
+
   // Adjust map settings based on network
   useEffect(() => {
-    const quality = adaptiveSettings.dataMode === 'minimal' ? 'low' : 
-                   adaptiveSettings.dataMode === 'reduced' ? 'medium' : 'high';
-    
-    setMapSettings({
-      showDetails: adaptiveSettings.dataMode !== 'minimal',
-      renderQuality: quality
-    });
+    if (adaptiveSettings) {
+      const quality = adaptiveSettings.dataMode === 'minimal' ? 'low' : 
+                     adaptiveSettings.dataMode === 'reduced' ? 'medium' : 'high';
+      
+      setMapSettings({
+        showDetails: adaptiveSettings.dataMode !== 'minimal',
+        renderQuality: quality
+      });
+    }
   }, [adaptiveSettings]);
 
   const drawMap = useCallback(() => {
@@ -66,13 +75,13 @@ export const InteractiveMap = ({ location }) => {
       }
     }
 
-    // Draw user location
-    if (location) {
+    // Draw location marker
+    if (mapLocation) {
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
       
       // Animate pulse only if animations are enabled
-      const pulseRadius = adaptiveSettings.animationsEnabled ? 
+      const pulseRadius = (adaptiveSettings?.animationsEnabled !== false) ? 
         15 + Math.sin(Date.now() / 300) * 5 : 15;
       
       // Pulse effect
@@ -92,17 +101,25 @@ export const InteractiveMap = ({ location }) => {
       ctx.stroke();
 
       // Show coordinates only in detailed mode
-      if (mapSettings.showDetails) {
+      if (mapSettings.showDetails && mapLocation.latitude && mapLocation.longitude) {
         ctx.fillStyle = '#ffffff';
         ctx.font = '12px Inter, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`, 
-                     centerX, centerY + 35);
+        ctx.fillText(
+          `${mapLocation.latitude.toFixed(4)}, ${mapLocation.longitude.toFixed(4)}`, 
+          centerX, centerY + 35
+        );
       }
+    } else {
+      // Show "No location" message
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '16px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No location data available', canvas.width / 2, canvas.height / 2);
     }
 
     // Network quality indicator
-    if (mapSettings.showDetails) {
+    if (mapSettings.showDetails && networkInfo) {
       ctx.fillStyle = networkInfo.isOnline ? '#22c55e' : '#ef4444';
       ctx.font = '14px Inter, sans-serif';
       ctx.textAlign = 'left';
@@ -115,17 +132,17 @@ export const InteractiveMap = ({ location }) => {
       }
     }
 
-  }, [location, mapSettings, adaptiveSettings, networkInfo]);
+  }, [mapLocation, mapSettings, adaptiveSettings, networkInfo]);
 
   useEffect(() => {
     drawMap();
     
     // Adaptive refresh rate based on network
-    const refreshRate = adaptiveSettings.animationsEnabled ? 100 : 1000;
+    const refreshRate = (adaptiveSettings?.animationsEnabled !== false) ? 100 : 1000;
     const interval = setInterval(drawMap, refreshRate);
     
     return () => clearInterval(interval);
-  }, [drawMap, adaptiveSettings.animationsEnabled]);
+  }, [drawMap]);
 
   return (
     <div className="bg-gray-800/40 backdrop-blur-lg rounded-2xl border border-gray-700/50 overflow-hidden">
@@ -134,11 +151,11 @@ export const InteractiveMap = ({ location }) => {
           <div className="flex items-center space-x-3">
             <MapPin className="text-blue-400" size={24} />
             <div>
-              <h3 className="text-xl font-bold text-white">Adaptive City Map</h3>
+              <h3 className="text-xl font-bold text-white">Interactive City Map</h3>
               <p className="text-gray-400 text-sm">
-                {location ? 
-                  `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : 
-                  'Waiting for location...'
+                {mapLocation ? 
+                  `${mapLocation.latitude.toFixed(6)}, ${mapLocation.longitude.toFixed(6)}` : 
+                  'No location available'
                 }
               </p>
             </div>
@@ -159,6 +176,16 @@ export const InteractiveMap = ({ location }) => {
           ref={canvasRef}
           className="absolute inset-0 w-full h-full"
         />
+        
+        {/* Map Controls */}
+        <div className="absolute top-4 right-4 bg-gray-900/90 backdrop-blur-sm rounded-lg p-2 space-y-2">
+          <button className="block w-8 h-8 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm">
+            +
+          </button>
+          <button className="block w-8 h-8 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm">
+            -
+          </button>
+        </div>
       </div>
 
       <div className="p-4 border-t border-gray-700/50">
@@ -166,17 +193,17 @@ export const InteractiveMap = ({ location }) => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-sm text-gray-400">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span>Your Location</span>
+              <span>Location Marker</span>
             </div>
-            {location?.accuracy && (
+            {mapLocation?.accuracy && (
               <div className="text-sm text-gray-400">
-                Accuracy: ±{Math.round(location.accuracy)}m
+                Accuracy: ±{Math.round(mapLocation.accuracy)}m
               </div>
             )}
           </div>
           
           <div className="text-sm text-gray-400">
-            Refresh: {adaptiveSettings.refreshInterval}ms
+            Interactive city map
           </div>
         </div>
       </div>

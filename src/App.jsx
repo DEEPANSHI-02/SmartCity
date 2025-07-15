@@ -70,15 +70,19 @@ const Dashboard = () => {
   }, [bgSupported, scheduleNotification]);
 
   const renderActiveSection = () => {
-    switch (activeSection) {
-      case 'dashboard':
-        return <DashboardSection selectedCity={selectedCity} />;
-      case 'map':
-        return <MapSection location={selectedCity ? selectedCity.coords : location} />;
-      default:
-        return <DashboardSection selectedCity={selectedCity} />;
-    }
-  };
+  switch (activeSection) {
+    case 'dashboard':
+      return <DashboardSection selectedCity={selectedCity} />;
+    case 'map':
+      // Fix: Handle both user location and selected city properly
+      const mapLocation = selectedCity ? 
+        { lat: selectedCity.coords.lat, lng: selectedCity.coords.lng } : 
+        location;
+      return <MapSection location={mapLocation} />;
+    default:
+      return <DashboardSection selectedCity={selectedCity} />;
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
