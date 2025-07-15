@@ -2,16 +2,21 @@ import React, { useState } from 'react';
 import { Activity, MapPin, Car, Cloud, Bus, Bell } from 'lucide-react';
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Activity, active: true },
-  { id: 'map', label: 'City Map', icon: MapPin, active: false },
-  { id: 'traffic', label: 'Traffic', icon: Car, active: false },
-  { id: 'weather', label: 'Weather', icon: Cloud, active: false },
-  { id: 'transport', label: 'Transport', icon: Bus, active: false },
-  { id: 'alerts', label: 'Alerts', icon: Bell, active: false }
+  { id: 'dashboard', label: 'Dashboard', icon: Activity },
+  { id: 'map', label: 'City Map', icon: MapPin },
+  { id: 'traffic', label: 'Traffic', icon: Car },
+  { id: 'weather', label: 'Weather', icon: Cloud },
+  { id: 'transport', label: 'Transport', icon: Bus },
+  { id: 'alerts', label: 'Alerts', icon: Bell }
 ];
 
-export const Sidebar = ({ isOpen, onClose }) => {
-  const [activeItem, setActiveItem] = useState('dashboard');
+export const Sidebar = ({ isOpen, onClose, activeSection, onSectionChange }) => {
+  const handleSectionClick = (sectionId) => {
+    onSectionChange(sectionId);
+    if (window.innerWidth < 1024) { // Close mobile menu on selection
+      onClose();
+    }
+  };
 
   return (
     <>
@@ -31,12 +36,12 @@ export const Sidebar = ({ isOpen, onClose }) => {
           <div className="space-y-2">
             {navigationItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activeItem === item.id;
+              const isActive = activeSection === item.id;
               
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveItem(item.id)}
+                  onClick={() => handleSectionClick(item.id)}
                   className={`
                     w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200
                     ${isActive 
@@ -59,7 +64,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Population</span>
-                <span className="text-white">13.96M</span>
+                <span className="text-white">Local Area</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Air Quality</span>
