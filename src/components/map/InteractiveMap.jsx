@@ -8,12 +8,14 @@ export const InteractiveMap = ({ location }) => {
   const { adaptiveSettings, networkInfo } = useNetworkInfo();
   const [mapData, setMapData] = useState({
     zoom: 1,
-    centerX: 0,
-    centerY: 0,
+    offsetX: 0,
+    offsetY: 0,
     showTraffic: true,
     showWeather: true,
     showZones: true,
-    selectedZone: null
+    selectedZone: null,
+    isDragging: false,
+    dragStart: { x: 0, y: 0 }
   });
 
   // Mock city zones with interactive data
@@ -35,97 +37,181 @@ export const InteractiveMap = ({ location }) => {
       name: 'Residential', 
       x: 350, 
       y: 200, 
-      radius: 40, 
-      traffic: 'light', 
-      weather: 'cloudy', 
-      color: '#22c55e',
-      population: '1.8M',
-      alerts: 0
-    },
-    { 
-      id: 3, 
-      name: 'Industrial', 
-      x: 150, 
-      y: 300, 
-      radius: 35, 
-      traffic: 'moderate', 
-      weather: 'rainy', 
-      color: '#f59e0b',
-      population: '0.5M',
-      alerts: 1
-    },
-    { 
-      id: 4, 
-      name: 'Commercial', 
-      x: 400, 
-      y: 120, 
-      radius: 25, 
-      traffic: 'heavy', 
-      weather: 'sunny', 
-      color: '#ef4444',
-      population: '0.8M',
-      alerts: 3
-    },
-    { 
-      id: 5, 
-      name: 'Airport', 
-      x: 500, 
-      y: 280, 
-      radius: 20, 
-      traffic: 'light', 
-      weather: 'clear', 
-      color: '#22c55e',
-      population: '0.1M',
-      alerts: 0
-    },
-    { 
-      id: 6, 
-      name: 'Tech Hub', 
-      x: 300, 
-      y: 250, 
-      radius: 28, 
-      traffic: 'moderate', 
-      weather: 'partly cloudy', 
-      color: '#8b5cf6',
-      population: '0.9M',
-      alerts: 1
-    }
-  ];
+     radius: 40, 
+     traffic: 'light', 
+     weather: 'cloudy', 
+     color: '#22c55e',
+     population: '1.8M',
+     alerts: 0
+   },
+   { 
+     id: 3, 
+     name: 'Industrial', 
+     x: 150, 
+     y: 300, 
+     radius: 35, 
+     traffic: 'moderate', 
+     weather: 'rainy', 
+     color: '#f59e0b',
+     population: '0.5M',
+     alerts: 1
+   },
+   { 
+     id: 4, 
+     name: 'Commercial', 
+     x: 400, 
+     y: 120, 
+     radius: 25, 
+     traffic: 'heavy', 
+     weather: 'sunny', 
+     color: '#ef4444',
+     population: '0.8M',
+     alerts: 3
+   },
+   { 
+     id: 5, 
+     name: 'Airport', 
+     x: 500, 
+     y: 280, 
+     radius: 20, 
+     traffic: 'light', 
+     weather: 'clear', 
+     color: '#22c55e',
+     population: '0.1M',
+     alerts: 0
+   },
+   { 
+     id: 6, 
+     name: 'Tech Hub', 
+     x: 300, 
+     y: 250, 
+     radius: 28, 
+     traffic: 'moderate', 
+     weather: 'partly cloudy', 
+     color: '#8b5cf6',
+     population: '0.9M',
+     alerts: 1
+   }
+ ];
 
-  const trafficRoutes = [
-    { start: { x: 100, y: 100 }, end: { x: 300, y: 150 }, intensity: 'heavy', name: 'Highway 1' },
-    { start: { x: 200, y: 200 }, end: { x: 450, y: 250 }, intensity: 'moderate', name: 'Main Street' },
-    { start: { x: 150, y: 300 }, end: { x: 400, y: 200 }, intensity: 'light', name: 'Ring Road' },
-    { start: { x: 300, y: 100 }, end: { x: 500, y: 300 }, intensity: 'heavy', name: 'Express Way' },
-    { start: { x: 50, y: 250 }, end: { x: 550, y: 180 }, intensity: 'moderate', name: 'Metro Line' }
-  ];
+ const trafficRoutes = [
+   { start: { x: 100, y: 100 }, end: { x: 300, y: 150 }, intensity: 'heavy', name: 'Highway 1' },
+   { start: { x: 200, y: 200 }, end: { x: 450, y: 250 }, intensity: 'moderate', name: 'Main Street' },
+   { start: { x: 150, y: 300 }, end: { x: 400, y: 200 }, intensity: 'light', name: 'Ring Road' },
+   { start: { x: 300, y: 100 }, end: { x: 500, y: 300 }, intensity: 'heavy', name: 'Express Way' },
+   { start: { x: 50, y: 250 }, end: { x: 550, y: 180 }, intensity: 'moderate', name: 'Metro Line' }
+ ];
 
-  // Handle both user location and selected city coordinates
-  const mapLocation = location ? {
-    latitude: location.latitude || location.lat || 0,
-    longitude: location.longitude || location.lng || 0,
-    accuracy: location.accuracy || 100
-  } : null;
+ // Handle both user location and selected city coordinates
+ const mapLocation = location ? {
+   latitude: location.latitude || location.lat || 0,
+   longitude: location.longitude || location.lng || 0,
+   accuracy: location.accuracy || 100
+ } : null;
 
-  const drawMap = useCallback(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
+ // Zoom functions
+ const zoomIn = () => {
+   setMapData(prev => ({
+     ...prev,
+     zoom: Math.min(prev.zoom * 1.2, 3) // Max zoom 3x
+   }));
+ };
 
-    const ctx = canvas.getContext('2d');
-    const rect = container.getBoundingClientRect();
-    
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+ const zoomOut = () => {
+   setMapData(prev => ({
+     ...prev,
+     zoom: Math.max(prev.zoom / 1.2, 0.5) // Min zoom 0.5x
+   }));
+ };
 
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+ const resetView = () => {
+   setMapData(prev => ({
+     ...prev,
+     zoom: 1,
+     offsetX: 0,
+     offsetY: 0
+   }));
+ };
 
-    // Draw city background with gradient
-    const gradient = ctx.createRadialGradient(
-      canvas.width / 2, canvas.height / 2, 0,
-        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
-      );
+ // Mouse wheel zoom
+ const handleWheel = (event) => {
+   event.preventDefault();
+   const delta = event.deltaY > 0 ? -1 : 1;
+   
+   if (delta > 0) {
+     zoomIn();
+   } else {
+     zoomOut();
+   }
+ };
+
+ // Pan functionality
+ const handleMouseDown = (event) => {
+   const canvas = canvasRef.current;
+   const rect = canvas.getBoundingClientRect();
+   const x = event.clientX - rect.left;
+   const y = event.clientY - rect.top;
+   
+   setMapData(prev => ({
+     ...prev,
+     isDragging: true,
+     dragStart: { x, y }
+   }));
+ };
+
+ const handleMouseMove = (event) => {
+   if (!mapData.isDragging) return;
+   
+   const canvas = canvasRef.current;
+   const rect = canvas.getBoundingClientRect();
+   const x = event.clientX - rect.left;
+   const y = event.clientY - rect.top;
+   
+   const deltaX = x - mapData.dragStart.x;
+   const deltaY = y - mapData.dragStart.y;
+   
+   setMapData(prev => ({
+     ...prev,
+     offsetX: prev.offsetX + deltaX,
+     offsetY: prev.offsetY + deltaY,
+     dragStart: { x, y }
+   }));
+ };
+
+ const handleMouseUp = () => {
+   setMapData(prev => ({
+     ...prev,
+     isDragging: false
+   }));
+ };
+
+ const drawMap = useCallback(() => {
+   const canvas = canvasRef.current;
+   const container = containerRef.current;
+   if (!canvas || !container) return;
+
+   const ctx = canvas.getContext('2d');
+   const rect = container.getBoundingClientRect();
+   
+   canvas.width = rect.width;
+   canvas.height = rect.height;
+
+   // Clear canvas
+   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+   // Save context for transformations
+   ctx.save();
+
+   // Apply zoom and pan transformations
+   ctx.translate(canvas.width / 2 + mapData.offsetX, canvas.height / 2 + mapData.offsetY);
+   ctx.scale(mapData.zoom, mapData.zoom);
+   ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+   // Draw city background with gradient
+   const gradient = ctx.createRadialGradient(
+     canvas.width / 2, canvas.height / 2, 0,
+     canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
+   );
    gradient.addColorStop(0, '#1f2937');
    gradient.addColorStop(0.7, '#374151');
    gradient.addColorStop(1, '#111827');
@@ -134,7 +220,7 @@ export const InteractiveMap = ({ location }) => {
 
    // Draw grid pattern
    ctx.strokeStyle = '#4b5563';
-   ctx.lineWidth = 0.5;
+   ctx.lineWidth = 0.5 / mapData.zoom; // Adjust line width for zoom
    const gridSize = 50;
    
    for (let i = 0; i < canvas.width; i += gridSize) {
@@ -160,10 +246,10 @@ export const InteractiveMap = ({ location }) => {
        };
        
        ctx.strokeStyle = colors[route.intensity];
-       ctx.lineWidth = route.intensity === 'heavy' ? 8 : route.intensity === 'moderate' ? 6 : 4;
+       ctx.lineWidth = (route.intensity === 'heavy' ? 8 : route.intensity === 'moderate' ? 6 : 4) / mapData.zoom;
        ctx.lineCap = 'round';
        ctx.shadowColor = colors[route.intensity];
-       ctx.shadowBlur = 10;
+       ctx.shadowBlur = 10 / mapData.zoom;
        
        ctx.beginPath();
        ctx.moveTo(route.start.x, route.start.y);
@@ -173,14 +259,16 @@ export const InteractiveMap = ({ location }) => {
        // Reset shadow
        ctx.shadowBlur = 0;
        
-       // Draw route labels
-       const midX = (route.start.x + route.end.x) / 2;
-       const midY = (route.start.y + route.end.y) / 2;
-       
-       ctx.fillStyle = '#ffffff';
-       ctx.font = '10px Inter, sans-serif';
-       ctx.textAlign = 'center';
-       ctx.fillText(route.name, midX, midY - 5);
+       // Draw route labels (only at certain zoom levels)
+       if (mapData.zoom > 0.8) {
+         const midX = (route.start.x + route.end.x) / 2;
+         const midY = (route.start.y + route.end.y) / 2;
+         
+         ctx.fillStyle = '#ffffff';
+         ctx.font = `${10 / mapData.zoom}px Inter, sans-serif`;
+         ctx.textAlign = 'center';
+         ctx.fillText(route.name, midX, midY - 5);
+       }
      });
    }
 
@@ -210,7 +298,7 @@ export const InteractiveMap = ({ location }) => {
        // Zone glow effect
        if (isSelected) {
          ctx.shadowColor = zone.color;
-         ctx.shadowBlur = 20;
+         ctx.shadowBlur = 20 / mapData.zoom;
        }
        
        // Zone circle
@@ -223,23 +311,24 @@ export const InteractiveMap = ({ location }) => {
        // Zone border
        ctx.globalAlpha = 1;
        ctx.strokeStyle = isSelected ? '#ffffff' : '#e5e7eb';
-       ctx.lineWidth = isSelected ? 3 : 2;
+       ctx.lineWidth = (isSelected ? 3 : 2) / mapData.zoom;
        ctx.stroke();
        
        // Reset shadow
        ctx.shadowBlur = 0;
 
-       // Zone label
+       // Zone label (scale with zoom)
        ctx.fillStyle = '#ffffff';
-       ctx.font = isSelected ? '14px Inter, sans-serif' : '12px Inter, sans-serif';
-       ctx.fontWeight = isSelected ? 'bold' : 'normal';
+       ctx.font = `${isSelected ? 14 : 12}px Inter, sans-serif`;
        ctx.textAlign = 'center';
        ctx.fillText(zone.name, zone.x, zone.y + zone.radius + 20);
        
        // Population count
-       ctx.fillStyle = '#9ca3af';
-       ctx.font = '10px Inter, sans-serif';
-       ctx.fillText(zone.population, zone.x, zone.y + zone.radius + 35);
+       if (mapData.zoom > 0.7) {
+         ctx.fillStyle = '#9ca3af';
+         ctx.font = `${10}px Inter, sans-serif`;
+         ctx.fillText(zone.population, zone.x, zone.y + zone.radius + 35);
+       }
        
        // Alert indicators
        if (zone.alerts > 0) {
@@ -249,14 +338,17 @@ export const InteractiveMap = ({ location }) => {
          ctx.fill();
          
          ctx.fillStyle = '#ffffff';
-         ctx.font = '10px Inter, sans-serif';
+         ctx.font = `${10}px Inter, sans-serif`;
          ctx.textAlign = 'center';
          ctx.fillText(zone.alerts.toString(), zone.x + zone.radius - 5, zone.y - zone.radius + 9);
        }
      });
    }
 
-   // Draw user/selected location
+   // Restore context for non-transformed elements
+   ctx.restore();
+
+   // Draw user/selected location (always in center, not affected by zoom)
    if (mapLocation) {
      const centerX = canvas.width / 2;
      const centerY = canvas.height / 2;
@@ -287,7 +379,7 @@ export const InteractiveMap = ({ location }) => {
      ctx.lineWidth = 3;
      ctx.stroke();
      
-     // Location icon (pin shape)
+     // Location icon
      ctx.fillStyle = '#ffffff';
      ctx.beginPath();
      ctx.moveTo(centerX, centerY - 5);
@@ -308,7 +400,8 @@ export const InteractiveMap = ({ location }) => {
      }
    }
 
-   // Draw compass
+   // Draw UI elements (compass, scale, legend) - not affected by zoom
+   // Compass
    ctx.fillStyle = '#ffffff';
    ctx.font = '16px Inter, sans-serif';
    ctx.textAlign = 'center';
@@ -349,7 +442,7 @@ export const InteractiveMap = ({ location }) => {
    ctx.font = '12px Inter, sans-serif';
    ctx.textAlign = 'left';
    ctx.fillText('0', 15, canvas.height - 20);
-   ctx.fillText('1km', 65, canvas.height - 20);
+   ctx.fillText(`${(1 / mapData.zoom).toFixed(1)}km`, 65, canvas.height - 20);
 
    // Draw mini legend
    if (mapData.showTraffic || mapData.showWeather) {
@@ -388,13 +481,29 @@ export const InteractiveMap = ({ location }) => {
      }
    }
 
+   // Draw zoom level indicator
+   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+   ctx.fillRect(canvas.width - 80, canvas.height - 30, 70, 20);
+   ctx.fillStyle = '#ffffff';
+   ctx.font = '12px Inter, sans-serif';
+   ctx.textAlign = 'center';
+   ctx.fillText(`${(mapData.zoom * 100).toFixed(0)}%`, canvas.width - 45, canvas.height - 15);
+
  }, [mapLocation, mapData, adaptiveSettings, networkInfo]);
 
+ // Click handler with zoom and pan transformation
  const handleCanvasClick = (event) => {
    const canvas = canvasRef.current;
    const rect = canvas.getBoundingClientRect();
-   const x = event.clientX - rect.left;
-   const y = event.clientY - rect.top;
+   const rawX = event.clientX - rect.left;
+   const rawY = event.clientY - rect.top;
+
+   // Transform click coordinates to account for zoom and pan
+   const centerX = canvas.width / 2;
+   const centerY = canvas.height / 2;
+   
+   const x = ((rawX - centerX - mapData.offsetX) / mapData.zoom) + centerX;
+   const y = ((rawY - centerY - mapData.offsetY) / mapData.zoom) + centerY;
 
    // Check if click is on a zone
    const clickedZone = cityZones.find(zone => {
@@ -484,27 +593,42 @@ export const InteractiveMap = ({ location }) => {
      {/* Interactive Canvas */}
      <div 
        ref={containerRef}
-       className="relative h-96 cursor-crosshair"
+       className="relative h-96"
        onClick={handleCanvasClick}
+       onWheel={handleWheel}
+       onMouseDown={handleMouseDown}
+       onMouseMove={handleMouseMove}
+       onMouseUp={handleMouseUp}
+       onMouseLeave={handleMouseUp}
      >
        <canvas
          ref={canvasRef}
          className="absolute inset-0 w-full h-full"
+         style={{ cursor: mapData.isDragging ? 'grabbing' : 'grab' }}
        />
        
-       {/* Zoom Controls */}
-       <div className="absolute top-4 right-4 bg-gray-900/90 backdrop-blur-sm rounded-lg p-2 space-y-2">
+       {/* Enhanced Zoom Controls */}
+       <div className="absolute top-4 right-4 bg-gray-900/90 backdrop-blur-sm rounded-lg p-2 space-y-1">
          <button 
-           className="block w-8 h-8 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm font-bold transition-colors"
-           onClick={() => console.log('Zoom in')}
+           className="block w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded text-white text-lg font-bold transition-colors flex items-center justify-center"
+           onClick={zoomIn}
+           title="Zoom In"
          >
            +
          </button>
          <button 
-           className="block w-8 h-8 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm font-bold transition-colors"
-           onClick={() => console.log('Zoom out')}
+           className="block w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded text-white text-lg font-bold transition-colors flex items-center justify-center"
+           onClick={zoomOut}
+           title="Zoom Out"
          >
            -
+         </button>
+         <button 
+           className="block w-10 h-6 bg-blue-600 hover:bg-blue-500 rounded text-white text-xs font-medium transition-colors flex items-center justify-center"
+           onClick={resetView}
+           title="Reset View"
+         >
+           ⌂
          </button>
        </div>
        
