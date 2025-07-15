@@ -1,38 +1,66 @@
 import React, { useEffect, useState } from 'react';
 import { useBackgroundTasks } from '../../hooks/useBackgroundTasks';
+import { getCityData } from '../../services/cityService';
 import { Activity, TrendingUp, TrendingDown } from 'lucide-react';
 
-export const LiveWidget = ({ title, dataKey, icon: Icon, color, unit = '' }) => {
+export const LiveWidget = ({ title, dataKey, icon: Icon, color, unit = '', selectedCity }) => {
   const { backgroundData, syncStatus } = useBackgroundTasks();
   const [currentValue, setCurrentValue] = useState(null);
   const [previousValue, setPreviousValue] = useState(null);
   const [trend, setTrend] = useState('stable');
 
   useEffect(() => {
-    if (backgroundData && backgroundData[dataKey]) {
-      const newValue = getValueFromData(backgroundData[dataKey]);
-      
-      if (currentValue !== null) {
-        setPreviousValue(currentValue);
-        
-        // Calculate trend
-        if (newValue > currentValue) {
-          setTrend('up');
-        } else if (newValue < currentValue) {
-          setTrend('down');
-        } else {
-          setTrend('stable');
-        }
-      }
-      
-      setCurrentValue(newValue);
+    let value = null;
+
+    if (selectedCity) {
+      // Get data for selected city
+      const cityData = getCityData(selectedCity);
+      value = getValueFromCityData(cityData, dataKey);
+    } else if (backgroundData && backgroundData[dataKey]) {
+      // Get data from background sync (user's location)
+      value = getValueFromData(backgroundData[dataKey]);
+    } else {
+      // Fallback to mock data
+      value = getMockValue(dataKey);
     }
-  }, [backgroundData, dataKey, currentValue]);
+
+    if (value !== null && currentValue !== null) {
+      setPreviousValue(currentValue);
+      
+      // Calculate trend
+      if (value > currentValue) {
+        setTrend('up');
+      } else if (value < currentValue) {
+        setTrend('down');
+      } else {
+        setTrend('stable');
+      }
+    }
+    
+    setCurrentValue(value);
+  }, [backgroundData, dataKey, currentValue, selectedCity]);
+
+  const getValueFromCityData = (cityData, key) => {
+    switch (key) {
+      case 'weatherData':
+        return parseInt(cityData.temperature.replace('°C', ''));
+      case 'trafficData':
+        const trafficMap = { 'Light': 25, 'Moderate': 50, 'Heavy': 80 };
+        return trafficMap[cityData.trafficLevel] || 50;
+      case 'airQuality':
+        const aqiMap = { 'Good': 45, 'Moderate': 75, 'Poor': 120 };
+        return aqiMap[cityData.airQuality] || 50;
+      case 'publicTransport':
+        const transitMap = { 'Light': 95, 'Moderate': 85, 'Heavy': 70 };
+        return transitMap[cityData.trafficLevel] || 85;
+      default:
+        return 0;
+    }
+  };
 
   const getValueFromData = (data) => {
     if (!data) return null;
     
-    // Extract relevant value based on data type
     switch (dataKey) {
       case 'weatherData':
         return data.temperature;
@@ -45,6 +73,16 @@ export const LiveWidget = ({ title, dataKey, icon: Icon, color, unit = '' }) => 
       default:
         return data.value || 0;
     }
+  };
+
+  const getMockValue = (key) => {
+    const mockValues = {
+      'weatherData': 24,
+      'trafficData': 65,
+      'airQuality': 55,
+      'publicTransport': 88
+    };
+    return mockValues[key] || 0;
   };
 
   const getTrendIcon = () => {
@@ -70,6 +108,7 @@ export const LiveWidget = ({ title, dataKey, icon: Icon, color, unit = '' }) => 
       {/* Live indicator */}
       <div className="absolute top-3 right-3">
         <div className={`w-2 h-2 rounded-full ${
+          selectedCity ? 'bg-blue-400' : 
           syncStatus === 'success' ? 'bg-green-400' : 
           syncStatus === 'syncing' ? 'bg-yellow-400 animate-pulse' : 
           'bg-gray-500'
@@ -95,7 +134,9 @@ export const LiveWidget = ({ title, dataKey, icon: Icon, color, unit = '' }) => 
         <h3 className="text-gray-300 font-medium group-hover:text-white transition-colors duration-300">
           {title}
         </h3>
-        <span className="text-xs text-gray-500">LIVE</span>
+        <span className="text-xs text-gray-500">
+          {selectedCity ? 'SEARCH' : 'LIVE'}
+        </span>
       </div>
 
       {/* Background update animation */}

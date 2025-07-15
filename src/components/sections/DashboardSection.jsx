@@ -2,7 +2,7 @@ import React from 'react';
 import { Widget } from '../widgets/Widget';
 import { LiveWidget } from '../widgets/LiveWidget';
 import { LazyWrapper } from '../common/LazyWrapper';
-import { mockWidgets } from '../../services/mockData';
+import { createCityWidgets } from '../../services/mockData';
 import { getCityData } from '../../services/cityService';
 import { Car, Cloud, Activity, Bus } from 'lucide-react';
 
@@ -42,12 +42,12 @@ const liveWidgets = [
 ];
 
 export const DashboardSection = ({ selectedCity }) => {
-  // Get city-specific data if a city is selected
   const citySpecificData = selectedCity ? getCityData(selectedCity) : null;
+  const cityWidgets = createCityWidgets(selectedCity);
 
   return (
     <div className="space-y-8">
-      {/* City Info Banner - Show if city is selected */}
+      {/* City Info Banner */}
       {selectedCity && citySpecificData && (
         <LazyWrapper>
           <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl p-6 border border-blue-500/30">
@@ -91,16 +91,19 @@ export const DashboardSection = ({ selectedCity }) => {
               icon={widget.icon}
               color={widget.color}
               unit={widget.unit}
+              selectedCity={selectedCity}
             />
           ))}
         </div>
       </LazyWrapper>
 
-      {/* Dashboard Overview Section */}
+      {/* Dashboard Overview Section - Now City Specific */}
       <LazyWrapper>
-        <h3 className="text-xl font-bold mb-4">Dashboard Overview</h3>
+        <h3 className="text-xl font-bold mb-4">
+          Dashboard Overview {selectedCity && `- ${selectedCity.name}`}
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockWidgets.map((widget, index) => (
+          {cityWidgets.map((widget, index) => (
             <Widget key={widget.id} widget={widget} index={index} />
           ))}
         </div>
